@@ -145,7 +145,46 @@ void FillMeshZTest(const char* meshName, int width, int height)
 
 	Vec2i v[3];
 	Vec3f world[3];
-	Vec2f uv[3];
+	Vec3f light_dir(0, 0, -1);
+	float* zBuffer = new float[width*height];
+	for (int i = width * height; i--; zBuffer[i] = -std::numeric_limits<float>::max());
+	for (int i = 0; i < headModel.nfaces(); i++)
+	{
+		std::vector<int> face = headModel.face(i);
+		for (int j = 0; j < 3; j++)
+		{
+			world[j] = headModel.vert(face[j]);
+			Vec3f& v0 = world[j];
+			v[j].x = (v0.x + 1)*width / 2.0f;
+			v[j].y = (v0.y + 1)*height / 2.0f;
+		}
+		tri.ResetVertex(v[0], v[1], v[2]);
+		Vec3f n = cross(world[2] - world[0], world[1] - world[0]);
+		n.normalize();
+		float intensity = n * light_dir;
+		if (intensity > 0) // do back culling
+		{
+			tri.DoTriangulateZTest(headImage, TGAColor(intensity * 255, intensity * 255, intensity * 255, 255), zBuffer, world[0].z, world[1].z, world[2].z);
+		}
+
+	}
+	headImage.flip_vertically(); // i want to have the origin at the left bottom corner of the image
+	std::string name(meshName);
+	headImage.write_tga_file((name.substr(0, name.length() - 4) + ".tga").c_str());
+	delete[] zBuffer;
+}
+
+void FillMeshWithDiffuseZTest(const char* meshName, int width, int height)
+{
+	if (meshName == nullptr) {
+		return;
+	}
+	Model headModel(meshName);
+	TGAImage headImage(width, height, TGAImage::RGB);
+	Triangulate tri;
+
+	Vec2i v[3];
+	Vec3f world[3];
 	Vec3f light_dir(0, 0, -1);
 	TGAColor uvColor[3];
 	float* zBuffer = new float[width*height];
@@ -159,8 +198,7 @@ void FillMeshZTest(const char* meshName, int width, int height)
 			Vec3f& v0 = world[j];
 			v[j].x = (v0.x + 1)*width / 2.0f;
 			v[j].y = (v0.y + 1)*height / 2.0f;
-			uv[j] = headModel.uv(i, j);
-			uvColor[j] = headModel.diffuse(uv[j]);
+			uvColor[j] = headModel.diffuse(headModel.uv(i, j));
 		}
 		tri.ResetVertex(v[0], v[1], v[2]);
 		Vec3f n = cross(world[2] - world[0], world[1] - world[0]);
@@ -168,8 +206,7 @@ void FillMeshZTest(const char* meshName, int width, int height)
 		float intensity = n * light_dir;
 		if (intensity > 0) // do back culling
 		{
-			//tri.DoTriangulate(headImage, TGAColor(intensity * 255, intensity * 255, intensity * 255, 255));
-			tri.DoTriangulateZTest(headImage, TGAColor(intensity * 255, intensity * 255, intensity * 255, 255), zBuffer, world[0].z, world[1].z, world[2].z);
+			tri.FillTriangleWithDiffuse(headImage, uvColor, zBuffer, world[0].z, world[1].z, world[2].z);
 		}
 
 	}
@@ -193,6 +230,8 @@ int main(int argc, char** argv) {
 // 	tri.DoTriangulate(newImage, red);
 // 	newImage.flip_vertically();
 // 	newImage.write_tga_file("newTri.tga");
-	FillMeshZTest("african_head.obj", 800, 800);
+//	FillMeshZTest("african_head.obj", 800, 800);
+	FillMeshWithDiffuseZTest("african_head.obj", 800, 800);
+	system("pause");
 	return 0;
 }
