@@ -126,6 +126,7 @@
     <ClInclude Include="geometry.h" />
     <ClInclude Include="model.h" />
     <ClInclude Include="our_gl.h" />
+    <ClInclude Include="RenderUtil.h" />
     <ClInclude Include="tgaimage.h" />
     <ClInclude Include="Triangulate.h" />
   </ItemGroup>
